@@ -6,4 +6,6 @@ mod/
 build/
 *.RData
 .Rhistory
-
+fort.*
+example/
+setas3ds

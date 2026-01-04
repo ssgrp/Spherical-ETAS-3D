@@ -49,6 +49,8 @@ SRCS := \
   mod_opt.f90 \
   mod_basicfuns.f90 \
   mod_mainfuns.f90 \
+  mod_med_result.f90 \
+  mod_node_data.f90  \
   etas3ds.f90
 
 OBJS := $(patsubst %.f90,$(OBJDIR)/%.o,$(SRCS))
@@ -93,28 +95,35 @@ $(OBJDIR)/mod_fintegral.o:   $(OBJDIR)/mod_kinds.o $(OBJDIR)/mod_params.o $(OBJD
 # mods_common uses mod_kinds  (and internal modules within itself)
 $(OBJDIR)/mods_common.o:     $(OBJDIR)/mod_kinds.o
 
+$(OBJDIR)/mod_med_result.o: $(OBJDIR)/mod_kinds.o $(OBJDIR)/mods_common.o
+
+$(OBJDIR)/mod_node_data.o:  $(OBJDIR)/mod_kinds.o $(OBJDIR)/mods_common.o
+
 # mod_opt uses mod_kinds, mod_mpi_state (in mods_common)
 $(OBJDIR)/mod_opt.o:         $(OBJDIR)/mod_kinds.o $(OBJDIR)/mods_common.o
 
 # mod_basicfuns uses mod_kinds, mod_params, mod_geomsphere, mod_specialfun, mod_fintegral,
 # and many modules in mods_common (mod_domain/mod_eq_data/mod_med_result/mod_mpi_state/...)
 $(OBJDIR)/mod_basicfuns.o:   $(OBJDIR)/mod_kinds.o $(OBJDIR)/mod_params.o $(OBJDIR)/mod_geomsphere.o \
-                             $(OBJDIR)/mod_specialfun.o $(OBJDIR)/mod_fintegral.o $(OBJDIR)/mods_common.o
+                             $(OBJDIR)/mod_specialfun.o $(OBJDIR)/mod_fintegral.o $(OBJDIR)/mods_common.o \
+                             $(OBJDIR)/mod_node_data.o $(OBJDIR)/mod_med_result.o
 
 # mod_mainfuns uses mod_basicfuns plus many others (mods_common, etc.)
 $(OBJDIR)/mod_mainfuns.o:    $(OBJDIR)/mod_kinds.o $(OBJDIR)/mod_params.o $(OBJDIR)/mod_geomsphere.o \
                              $(OBJDIR)/mod_specialfun.o $(OBJDIR)/mod_fintegral.o $(OBJDIR)/mods_common.o \
-                             $(OBJDIR)/mod_basicfuns.o
+                             $(OBJDIR)/mod_node_data.o $(OBJDIR)/mod_basicfuns.o  $(OBJDIR)/mod_med_result.o
 
 # etas3ds uses mod_mainfuns, mod_opt, mod_geomsphere, mod_params, mod_kinds,
 # and several modules in mods_common (mod_domain/mod_eq_data/mod_med_result/mod_smoothing/mod_model/...)
 $(OBJDIR)/etas3ds.o:         $(OBJDIR)/mod_kinds.o $(OBJDIR)/mod_params.o $(OBJDIR)/mod_geomsphere.o \
-                             $(OBJDIR)/mods_common.o $(OBJDIR)/mod_opt.o $(OBJDIR)/mod_mainfuns.o
+                             $(OBJDIR)/mods_common.o $(OBJDIR)/mod_opt.o $(OBJDIR)/mod_mainfuns.o \
+                             $(OBJDIR)/mod_node_data.o $(OBJDIR)/mod_med_result.o
 
 # ===== Auto include dependency files for include/cpp only =====
 -include $(DEPS)
 
 clean:
 	rm -rf $(OBJDIR) $(MODDIR) $(TARGET)
+
 
 
