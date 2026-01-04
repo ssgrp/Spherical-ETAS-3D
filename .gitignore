@@ -1,0 +1,9 @@
+obj/
+*.o
+mod/
+*.mod
+.out
+build/
+*.RData
+.Rhistory
+
