@@ -6,13 +6,23 @@ c
 c********************************************************************   
 
       subroutine bkgdcalc()
-      implicit real*8 (a-h,o-z)
+c     implicit real*8 (a-h,o-z)
+      implicit none
+      
       include 'mpif.h'
       include 'common.inc'
 
-      external pfisher,pgauss,pcauchy
-      real*8 w(6),zbkdtmp(nnd)
-      real*8 sint
+      real(8),external:: pfisher,pgauss,pcauchy,havad,dbeta
+      real(8),external:: srectint,spolyint,sfr,dfisher
+      
+      integer,external::iasign
+      real(8):: w(6),zbkdtmp(nnd)
+      real(8):: sint,havr0,s,s1
+      integer::i,ierr,j
+      
+c      external pfisher,pgauss,pcauchy
+c      real*8 w(6),zbkdtmp(nnd)
+c      real*8 sint
 
       do i=1, nn
          zbkdtmp(i)=0.0d0
@@ -81,9 +91,15 @@ c     pfisher: Cumulative probability at r
 C********************************************************************   
        real*8 function pfisher(havr,w)
 
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter(PI=3.14159265358979323846264338327d0)
+c       implicit real*8 (a-h,o-z)
+       implicit none
+       
+       real*8 w(6),havr
+
+       include 'param.inc'
+       real(8)::p1fisher_p1,p2fisher_p2
+       
+c       parameter(PI=3.14159265358979323846264338327d0)
 
        p1fisher_p1=1d0-exp(-havr/2d0/w(1)**2)
        p2fisher_p2=1d0-exp(-0.5d0/w(1)**2)
@@ -103,9 +119,17 @@ C    Input: havr haversine of r
 c*******************************************************************
               
         real*8 function sfr(havr,w)
-        implicit real*8 (a-h, o-z)
+c       implicit real*8 (a-h, o-z)
+        implicit none
+
         real*8 w(6),havr
-        parameter(PI=3.14159265358979323846264338327d0)
+
+        include 'param.inc'
+        real(8)::gamm,d,q,xmag, ssig, sfr_1,sfr_2,sfr_3
+        real(8)::sfr_23
+        
+c        real*8 w(6),havr
+c        parameter(PI=3.14159265358979323846264338327d0)
 
         gamm=w(1)
         d=w(2)
@@ -133,9 +157,12 @@ c     dfisher: density at r
 C
 C********************************************************************   
        real*8 function dfisher(havr,w)
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter (PI=3.14159265358979323846264338327)
+c       implicit real*8 (a-h,o-z)
+       real*8 w(6), havr
+c       parameter (PI=3.14159265358979323846264338327)
+        
+        include 'param.inc'
+        real(8):: d1fisher_d1,d2fisher_d2
 
        d1fisher_d1=exp(-(havr/2d0/w(1)**2))
        d2fisher_d2=1d0-exp(-0.5d0/w(1)**2)
@@ -150,9 +177,15 @@ C       dgamma_sfr(r)=d\int f(r)r dr \over  d\gamma
 c*******************************************************************
 
         real*8 function  dgamma_sfr(havr,param)
-        implicit real*8 (a-h, o-z)
-        real*8 param(6)
-        parameter(PI=3.14159265358979323846264338327d0)
+        implicit none
+      
+c        implicit real*8 (a-h, o-z)
+        real*8 param(6), havr
+        
+c        parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
+        real(8)::gamm,d,q,xmag,ssig,sfr_g1,sfr_g2,sfr_g3
+        real (8),external::sfr
 
         gamm=param(1)
         d=param(2)
@@ -180,9 +213,14 @@ C       dd_sfr(r)=d\int f(r)r dr \over  d\d
 c*******************************************************************
               
         real*8 function dd_sfr(havr,param)
-        implicit real*8 (a-h, o-z)
-        real*8 param(6)
-        parameter(PI=3.14159265358979323846264338327d0)
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        real*8 param(6),havr
+        
+c        parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
+        real(8)::gamm,d,q,xmag,ssig,sfr_d1,sfr_d2,sfr_d3
+        real (8),external::sfr
 
         gamm=param(1)
         d=param(2)
@@ -211,9 +249,17 @@ C       dq_sfr(r)=d\int sf(r)r dr \over  d\q
 c*******************************************************************
               
         real*8 function dq_sfr(havr,param)
-        implicit real*8 (a-h, o-z)
-        real*8 param(6)
-        parameter(PI=3.14159265358979323846264338327d0)
+
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        
+        real*8 param(6), havr
+        
+c        parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
+        real(8)::gamm,d,q,xmag,ssig,sfr_q1,sfr_q2,sfr_q3
+        real(8)::sfr_q4,sfr_q5,sfr_q23
+        real (8),external::sfr
 
         gamm=param(1)
         d=param(2)
@@ -248,9 +294,12 @@ C
 C********************************************************************   
        real*8 function pcauchy(r,w)
 
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter(PI=3.14159265358979323846264338327d0)
+c       implicit real*8 (a-h,o-z)
+       implicit none
+       real*8 w(6),r
+       
+c       parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
            
        pcauchy=1/2.0d0/PI*(1d0-(1+r**2/w(1)**2)**0.5)
       
@@ -265,9 +314,11 @@ C
 C********************************************************************   
        real*8 function dcauchy(r,w)
 
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter(PI=3.14159265358979323846264338327d0)
+c       implicit real*8 (a-h,o-z)
+        implicit none
+        real*8 w(6),r
+c       parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
 
        dcauchy=PI/2.5/w(1)**2/(1+r**2/w(1)**2)**1.5
 
@@ -281,11 +332,14 @@ C
 C********************************************************************   
        real*8 function pgauss(r,w)
 
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter(PI=3.14159265358979323846264338327d0)
-
-       pgauss=1/2d0/PI*(1d0-exp(-r**2/2d0/w(1)**2))
+c     implicit real*8 (a-h,o-z)
+       implicit none
+       
+       real*8 w(6), r
+c       parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
+       
+        pgauss=1/2d0/PI*(1d0-exp(-r**2/2d0/w(1)**2))
       
        return
        end
@@ -297,10 +351,15 @@ C
 C********************************************************************   
        real*8 function dgauss(r,w)
 
-       implicit real*8 (a-h,o-z)
-       real*8 w(6)
-       parameter(PI=3.14159265358979323846264338327d0)
+c     implicit real*8 (a-h,o-z)
+       implicit none
+       
+       real*8 w(6),r
+       
+        include 'param.inc'
+c       parameter(PI=3.14159265358979323846264338327d0)
 
+       
        dgauss=1/2d0/PI/w(1)**2*exp(-r**2/2d0/w(1)**2)
        return
        end
@@ -317,10 +376,23 @@ c       g1: gradient of the conditional function
 c***************************************************************
       subroutine xlamb(i,b, fv1, g1)
         
-      implicit real*8 (a-h,o-z)
-      real*8 b(9), g1(50)
-      parameter(PI=3.14159265358979323846264338327d0)
+c     implicit real*8 (a-h,o-z)
+      implicit none
+      real*8 b(9), g1(50),fv1
+      integer::i
+      
+c      parameter(PI=3.14159265358979323846264338327d0)
       include 'common1.inc'
+      include 'param.inc'
+
+      real(8)::xmu,a2,c,alfa,p,d,q,gamma,eta
+      real(8)::s,sg1,sg2,sg3,sg4,sg5,sg6,sg7,sg8,sg9
+      real(8)::delt,havd2,bbb1,bbb2,bbb3,bbb4
+      real(8)::pr1,pr1_alfa,pr2,pr2_c,pr2_p,pr3,pr3_d,pr3_q
+      real(8)::pr3_gamma,pr4,pr4_ln_eta,ssig,tmp,tmp1,tmp2
+      real(8),external::havad,psi,dbeta
+      integer::j
+      
       xmu=b(1)**2
       a2=b(2)**2
       c=b(3)**2
@@ -420,12 +492,27 @@ c       fv
 C       h
 C*************************************************************
         subroutine  xint(i,b,fv,h)
-        implicit real*8 (a-h,o-z)
-        include 'common1.inc'
-        real*8 b(9),h(9)
-        real*8 w(6)
-        external sfr,dgamma_sfr,dd_sfr, dq_sfr
+c     implicit real*8 (a-h,o-z)
+        implicit none
+        
+        real*8 b(9),h(9),fv
+        integer:: i
+        
+c        real*8 w(6)
+c        real(8),external:: sfr,dgamma_sfr,dd_sfr, dq_sfr
 
+        include 'common1.inc'
+        
+c     real*8 b(9),h(9)
+        real(8)::xmu,a2,c,alfa,p,d,q,gamma
+        real(8)::gi, gic, gip,ttemp, gi1,gi2,gic1,gic2,gip1,gip2,si
+        real(8)::sid,sigamma,siq,sk, ttemp1,ttemp2
+
+        
+        real*8 w(6)
+        real(8),external::sfr,dgamma_sfr,dd_sfr, dq_sfr,srectint
+        real(8),external::spolyint
+       
         xmu=b(1)**2
         a2=b(2)**2
         c=b(3)**2
@@ -508,10 +595,13 @@ c*******************************************************************
               
         real*8 function fr(r,w)
 
-        implicit real*8 (a-h, o-z)
-
-        real*8 w(6)
-        parameter(PI=3.14159265358979323846264338327d0)
+c        implicit real*8 (a-h, o-z)
+         implicit none
+        real*8 r, w(6)
+        include 'param.inc'
+        real(8)::gam,d,q,xmag,ssig
+        
+c        parameter(PI=3.14159265358979323846264338327d0)
 
         gam=w(1)
         d=w(2)
@@ -534,10 +624,14 @@ c*******************************************************************
               
         real*8 function dgam_fr(r,param)
 
-        implicit real*8 (a-h, o-z)
-        parameter(PI=3.14159265358979323846264338327d0)
+        implicit none
+        real*8 r, param(6)
+        include 'param.inc'
+        real(8)::gam,d,q,xmag,ssig
+c       implicit real*8 (a-h, o-z)
+c        parameter(PI=3.14159265358979323846264338327d0)
 
-        real*8 param(6)
+c        real*8 param(6)
 
         gam=param(1)
         d=param(2)
@@ -557,10 +651,16 @@ c*******************************************************************
               
         real*8 function dd_fr(r,param)
 
-        implicit real*8 (a-h, o-z)
+        implicit none
+        real*8 r, param(6)
 
-        real*8 param(6)
-        parameter(PI=3.14159265358979323846264338327d0)
+        include 'param.inc'
+        real(8)::gam,d,q,xmag,ssig
+
+c        implicit real*8 (a-h, o-z)
+c
+c        real*8 param(6)
+c        parameter(PI=3.14159265358979323846264338327d0)
 
         gam=param(1)
         d=param(2)
@@ -581,10 +681,15 @@ c*******************************************************************
               
         real*8 function dq_fr(r,param)
 
-        implicit real*8 (a-h, o-z)
-        parameter(PI=3.14159265358979323846264338327d0)
+        implicit none
+        real*8 r, param(6)
+        include 'param.inc'
+        real(8)::gam,d,q,xmag,ssig
 
-        real*8 param(6)
+c        implicit real*8 (a-h, o-z)
+c        parameter(PI=3.14159265358979323846264338327d0)
+c
+c        real*8 param(6)
         
         gam=param(1)
         d=param(2)

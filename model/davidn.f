@@ -18,20 +18,37 @@ c        ram:     optimal step width
 c        e2:      minimum function value
 c        ig:      error code
 c
-      implicit  real  *8 ( a-h,o-z )
-      external funct
-      integer  return,sub
-      dimension  x(1) , h(1) , x1(50)
-      dimension  g(50)
-      common     / ccc /  isw , ipr
+c      implicit  real  *8 ( a-h,o-z )
+      implicit none
+      
+       external funct
+       real *8  x(1), h(1), g(50), x1(50),ram,ee
+       integer k,ig
+
+       integer  sub,ret
+c      dimension  x(1) , h(1) , x1(50)
+c      real(8):: x1(50),g(50)     
+c     dimension  g(50)
+c      common     / ccc /  isw , ipr
+      real(8)::a1,a2,a3,b1,b2,const2,e1,e2,e3,hnorm
+      real(8)::ram1,ram2,ram3
+      integer:: i, ifg
+
+
+      integer::nprocs, myrank, ista, iend, ista2, iend2,ised       
+c       integer  sub,ret
+c      dimension  x(1) , h(1) , x1(50)
+c      dimension  g(50)
+c      common     / ccc /  isw , ipr
       common /mpi/nprocs, myrank, ista, iend, ista2, iend2,ised
 c
-      isw = 1
+c      isw = 1
       if( ram .le. 1.0d-30 )  ram = 0.1d0
       const2 = 1.0d-16
       hnorm = 0.d0
-      do 10  i=1,k
-   10 hnorm = hnorm + h(i)**2
+      do i=1,k
+        hnorm = hnorm + h(i)**2
+      enddo   
       hnorm = dsqrt( hnorm )
 
      
@@ -41,19 +58,21 @@ c
       e1 =ee
       ram1 = 0.d0
 c
-      do 20  i=1,k
-   20 x1(i) = x(i) + ram2*h(i)
+      do  i=1,k
+        x1(i) = x(i) + ram2*h(i)
+      enddo   
       call  funct( k,x1,e2,g,ig )
-      if(ipr.ge.7.and.myrank.eq.0) write(6,2)  ram2,e2
+c      if(ipr.ge.7.and.myrank.eq.0) write(6,2)  ram2,e2
 c
        if( ig .eq. 1 )  go to  50
        if( e2 .gt. e1 ) go to 50
    30 ram3 = ram2*2.d0
-      do 40  i=1,k
-   40 x1(i) = x(i) + ram3*h(i)
+      do i=1,k
+        x1(i) = x(i) + ram3*h(i)
+      enddo   
       call  funct( k,x1,e3,g,ig )
       if( ig.eq.1 )  go to  500
-      if( ipr.ge.7.and.myrank.eq.0 ) write(6,3)  ram3,e3
+c      if( ipr.ge.7.and.myrank.eq.0 ) write(6,3)  ram3,e3
       if( e3 .gt. e2 )  go to 70
       ram1 = ram2
       ram2 = ram3
@@ -65,19 +84,21 @@ c
       e3 = e2
       ram2 = ram3*0.1d0
       if( ram2*hnorm .lt. const2 )  go to  400
-      do 60  i=1,k
-   60 x1(i) = x(i) + ram2*h(i)
+      do   i=1,k
+        x1(i) = x(i) + ram2*h(i)
+      enddo   
       call  funct( k,x1,e2,g,ig )
-      if(ipr.ge.7.and.myrank.eq.0) write(6,4)  ram2,e2
+c      if(ipr.ge.7.and.myrank.eq.0) write(6,4)  ram2,e2
       if( e2.gt.e1 )  go to 50
 c
    70 ret = 80
       go to 200
 c
-   80 do 90  i=1,k
-   90 x1(i) = x(i) + ram*h(i)
+   80 do   i=1,k
+        x1(i) = x(i) + ram*h(i)
+      enddo   
       call  funct( k,x1,ee,g,ig )
-      if(ipr.ge.7.and.myrank.eq.0)  write(6,5)  ram,ee
+c      if(ipr.ge.7.and.myrank.eq.0)  write(6,5)  ram,ee
 c
       ifg = 0
       sub = 300
@@ -113,10 +134,11 @@ c
       if(sub.eq.300) goto 300
 
 c
-  130 do 140  i=1,k
-  140 x1(i) = x(i) + ram*h(i)
+  130 do   i=1,k
+        x1(i) = x(i) + ram*h(i)
+      enddo   
       call  funct( k,x1,ee,g,ig )
-      if( ipr.ge.7.and.myrank.eq.0 )  write(6,6)  ram,ee
+c      if( ipr.ge.7.and.myrank.eq.0 )  write(6,6)  ram,ee
        sub=200
       ifg = ifg+1
       ifg = 0
@@ -131,7 +153,7 @@ c      -------  internal subroutine sub1  -------
       a3 = (ram2-ram1)*e3
       b2 = (a1+a2+a3)*2.d0
       b1 = a1*(ram3+ram2) + a2*(ram1+ram3) + a3*(ram2+ram1)
-      if( b2 .eq. 0.d0 )  go to 210
+      if( abs(b2) < 0.1d-20 )  go to 210
       ram = b1 /b2
       if(ret.eq.80) goto 80
       if(ret.eq.130) goto 130
@@ -156,10 +178,11 @@ c
 c ------------------------------------------------------------
 c
   500 ram = (ram2+ram3)*0.5d0
-  510 do 520  i=1,k
-  520 x1(i) = x(i) + ram*h(i)
+  510 do  i=1,k
+        x1(i) = x(i) + ram*h(i)
+      enddo   
       call  funct( k,x1,e3,g,ig )
-      if( ipr.ge.7.and.myrank.eq.0 )  write(6,7)  ram,e3
+c      if( ipr.ge.7.and.myrank.eq.0 )  write(6,7)  ram,e3
       if( ig.eq.1 )  go to 540
       if( e3.gt.e2 )  go to 530
       ram1 = ram2
@@ -175,19 +198,19 @@ c
       go to 510
 c
 c ------------------------------------------------------------
-    1 format( 1h ,'lambda =',d18.10, 10x,'e1 =',d25.17 )
-    2 format( 1h ,'lambda =',d18.10, 10x,'e2 =',d25.17 )
-    3 format( 1h ,'lambda =',d18.10, 10x,'e3 =',d25.17 )
-    4 format( 1h ,'lambda =',d18.10, 10x,'e4 =',d25.17 )
-    5 format( 1h ,'lambda =',d18.10, 10x,'e5 =',d25.17 )
-    6 format( 1h ,'lambda =',d18.10, 10x,'e6 =',d25.17 )
-    7 format( 1h ,'lambda =',d18.10, 10x,'e7 =',d25.17 )
+c    1 format( 1h ,'lambda =',d18.10, 10x,'e1 =',d25.17 )
+c    2 format( 1h ,'lambda =',d18.10, 10x,'e2 =',d25.17 )
+c    3 format( 1h ,'lambda =',d18.10, 10x,'e3 =',d25.17 )
+c    4 format( 1h ,'lambda =',d18.10, 10x,'e4 =',d25.17 )
+c    5 format( 1h ,'lambda =',d18.10, 10x,'e5 =',d25.17 )
+c    6 format( 1h ,'lambda =',d18.10, 10x,'e6 =',d25.17 )
+c    7 format( 1h ,'lambda =',d18.10, 10x,'e7 =',d25.17 )
       end
 
 c************************************************************************
 C************************************************************************
 
-      subroutine  davidn( x,n,ihes,funct )
+      subroutine  davidn( x,n,funct )
 c
 c          minimization by davidon-fletcher-powell procedure
 c
@@ -205,15 +228,33 @@ c                      =1   inverse of hessian matrix is available
 c`
 c          output:
 c             x:       vector of minimizing solution
-c 
-      implicit  real * 8  ( a-h , o-z )
-      external funct
-      dimension  x(50) , dx(50) , g(50) , g0(50) , y(50)
-      dimension  h(50,50) , wrk(50) , s(50)
-      dimension  r(31,31)
-      common     / ccc /  isw
+c
+
+      
+c     implicit  real * 8  ( a-h , o-z )
+      implicit none
+      
+      external funct 
+      real*8  x(50) , dx(50) , g(50) , g0(50) , y(50)
+      real*8  h(50,50) , wrk(50) , s(50)
+      real*8  r(31,31)
+      integer:: n
+      
+c      dimension  x(50) , dx(50) , g(50) , g0(50) , y(50)
+c      dimension  h(50,50) , wrk(50) , s(50)
+c      dimension  r(31,31)
+
+      real(8):: f, aic,sd, ds2, ed, gtem,s1,s2,ss,stem,sum,xm
       common     / ddd /  r , f , aic , sd
+      integer::nprocs, myrank, ista, iend, ista2, iend2,ised
       common /mpi/nprocs, myrank, ista, iend, ista2, iend2,ised
+   
+      real(8)::tau1,tau2,eps1,eps2,ramda,const1, xmb
+      integer:: iter,i,ic,icc, ig,j
+      
+c      common     / ccc /  isw
+c      common     / ddd /  r , f , aic , sd
+c      common /mpi/nprocs, myrank, ista, iend, ista2, iend2,ised
 
       data  tau1 , tau2  /  1.0d-6 , 1.0d-6  /
       data  eps1 , eps2  / 1.0d-6 , 1.0d-6  /
@@ -223,13 +264,15 @@ c
 c
 c          initial estimate of inverse of hessian
 c
-      do  20   i=1,n
-      do  10   j=1,n
-   10 h(i,j) = 0.0d00
-      s(i) = 0.0d00
-      dx(i) = 0.0d00
-   20 h(i,i) = 1.0d00
-      isw = 0
+      do    i=1,n
+         do j=1,n
+           h(i,j) = 0.0d00
+         enddo   
+         s(i) = 0.0d00
+         dx(i) = 0.0d00
+         h(i,i) = 1.0d00
+      enddo
+c      isw = 0
 c
       call  funct( n,x,xm,g,ig )
 c
@@ -246,67 +289,81 @@ c      iteration
       do  11111   ic=1,n
       if( ic .eq. 1 .and. icc .eq. 1 )     go to 120
 c
-      do  40   i=1,n
-   40 y(i) = g(i) - g0(i)
-      do  60   i=1,n
-      sum = 0.0d00
-      do  50   j=1,n
-   50 sum = sum + y(j) * h(i,j)
-   60 wrk(i) = sum
+      do i=1,n
+         y(i) = g(i) - g0(i)
+      enddo   
+      do   i=1,n
+        sum = 0.0d00
+        do    j=1,n
+           sum = sum + y(j) * h(i,j)
+        enddo   
+         wrk(i) = sum
+      enddo
       s1 = 0.0d00
       s2 = 0.0d00
-      do  70   i=1,n
-      s1 = s1 + wrk(i) * y(i)
-   70 s2 = s2 + dx(i) * y(i)
+      do    i=1,n
+         s1 = s1 + wrk(i) * y(i)
+         s2 = s2 + dx(i) * y(i)
+      enddo
+      
       if( s1.le.const1 .or. s2.le.const1 )  go to 900
-      if( s1 .le. s2 )     go to 100
+      if( s1 .le. s2 )   go to 100
 c
 c          update the inverse of hessian matrix
 c
 c               ---  davidon-fletcher-powell type correction  ---
 c
-      do  90   i=1,n
-      do  90   j=i,n
-      h(i,j) = h(i,j) + dx(i)*dx(j)/s2 - wrk(i)*wrk(j)/s1
-   90 h(j,i) = h(i,j)
+      do    i=1,n
+      do    j=i,n
+         h(i,j) = h(i,j) + dx(i)*dx(j)/s2 - wrk(i)*wrk(j)/s1
+         h(j,i) = h(i,j)
+      enddo
+      enddo
       go to  120
 c
 c               ---  fletcher type correction  ---
 c
   100 continue
       stem = s1 / s2 + 1.0d00
-      do  110   i=1,n
-      do  110   j=i,n
-      h(i,j) = h(i,j)- (dx(i)*wrk(j)+wrk(i)*dx(j)-dx(i)*dx(j)*stem)/s2
-  110 h(j,i) = h(i,j)
+      do    i=1,n
+      do    j=i,n
+        h(i,j) = h(i,j)- (dx(i)*wrk(j)+wrk(i)*dx(j)-dx(i)*dx(j)*stem)/s2
+        h(j,i) = h(i,j)
+      enddo
+      enddo
 c
 c
 c
   120 continue
       ss = 0.0d00
-      do  150   i=1,n
-      sum = 0.0d00
-      do  140   j=1,n
-  140 sum = sum + h(i,j)*g(j)
-      ss = ss + sum * sum
-  150 s(i) = -sum
+      do i=1,n
+         sum = 0.0d00
+         do  j=1,n
+           sum = sum + h(i,j)*g(j)
+         enddo   
+         ss = ss + sum * sum
+         s(i) = -sum
+      enddo
 c
 c
       s1 = 0.0d00
       s2 = 0.0d00
-      do  170   i=1,n
-      s1 = s1 + s(i)*g(i)
-  170 s2 = s2 + g(i)*g(i)
+      do    i=1,n
+         s1 = s1 + s(i)*g(i)
+         s2 = s2 + g(i)*g(i)
+      enddo
       ds2 = dsqrt(s2)
       gtem = dabs(s1) / ds2
 c     write(6,610)gtem,ds2
       if( gtem .le. tau1  .and.  ds2 .le. tau2 )     go to  900
       if( s1 .lt. 0.0d00 )     go to  200
-      do  190   i=1,n
-      do  180   j=1,n
-  180 h(i,j) = 0.0d00
-      h(i,i) = 1.0d00
-  190 s(i) = -s(i)
+      do    i=1,n
+         do    j=1,n
+           h(i,j) = 0.0d00
+         enddo   
+         h(i,i) = 1.0d00
+         s(i) = -s(i)
+      enddo
   200 continue
 c
       ed = xm
@@ -323,19 +380,21 @@ c     if(mod(iter,10).eq.0) call hes4(n,x,h)
 c     if(mod(iter,10).eq.0) call invdet(h,tdet,n,50)
 c
       s1 = 0.0d00
-      do  210   i=1,n
-      dx(i) = s(i) * ramda
-      s1 = s1 + dx(i) * dx(i)
-      g0(i) = g(i)
-  210 x(i) = x(i) + dx(i)
+      do    i=1,n
+        dx(i) = s(i) * ramda
+        s1 = s1 + dx(i) * dx(i)
+        g0(i) = g(i)
+        x(i) = x(i) + dx(i)
+      enddo
       xmb = xm
-      isw = 0
+c      isw = 0
 c
       call  funct( n,x,xm,g,ig )
 c
       s2 = 0.d0
-      do  220     i=1,n
-  220 s2 = s2 + g(i)*g(i)
+      do i=1,n
+         s2 = s2 + g(i)*g(i)
+      enddo   
       if( dsqrt(s2) .gt. tau2 )   go to  11111
       if( xmb/xm-1.d0 .lt. eps1  .and.  dsqrt(s1) .lt. eps2 )  go to 900
 11111 continue
@@ -361,8 +420,8 @@ c     write(6,602)
 c     do 652 i=1,n
 c 652 write(6,604) (h(i,j),j=1,n)
 
-  602 format(1h ,'*** estimated inverse hessian ***')
-  604 format(1h ,8d15.5/(1h ,8d15.5))
+c  602 format(1h ,'*** estimated inverse hessian ***')
+c  604 format(1h ,8d15.5/(1h ,8d15.5))
 c
       return
   330 format( 1h ,' lmbd = ',d13.7,2x,'-ll = ',d21.15,2x,d9.2,1x,d9.2)

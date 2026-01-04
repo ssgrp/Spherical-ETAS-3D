@@ -95,7 +95,9 @@ C
 C  Latest modification: June 16, 1988
 C
 C----------------------------------------------------------------------
-      implicit real*8 (a-h, o-z)
+c     implicit real*8 (a-h, o-z)
+      implicit none
+      
       INTEGER I
 CS    REAL      
 CD    DOUBLE PRECISION

@@ -10,8 +10,11 @@ C       ==========================================
 C
 
         real*8 FUNCTION dbeta(x, p, q)
-        implicit real*8 (a-h, o-z)
-
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        real(8)::x, p, q
+        real(8),external:: beta       
+        
         dbeta = x**(p-1d0)*(1d0-x)**(q-1d0)/beta(p,q)
 
         return 
@@ -27,7 +30,11 @@ C       Output:  BT --- B(p,q)
 C       Routine called: GAMMA for computing â(x)
 C       ==========================================
 C
-        IMPLICIT real*8 (A-H,O-Z)
+c        IMPLICIT real*8 (A-H,O-Z)
+        implicit none
+        real(8):: p, q
+        real(8),external::QLGAMMA
+        
         beta=exp(QLGAMMA(P)+QLGAMMA(Q)-QLGAMMA(P+Q))
 
         RETURN

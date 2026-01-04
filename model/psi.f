@@ -1,3 +1,4 @@
+
       real*8 FUNCTION PSI(XX)
 C----------------------------------------------------------------------
 C
@@ -102,7 +103,8 @@ C
 C  Latest modification: June 8, 1988
 C
 C----------------------------------------------------------------------
-      implicit real*8 (a-h,o-z)
+c     implicit real*8 (a-h,o-z)
+      implicit none
       INTEGER I,N,NQ
 CS    REAL
 CD    DOUBLE PRECISION
@@ -193,7 +195,7 @@ C----------------------------------------------------------------------
 C----------------------------------------------------------------------
 C  Argument reduction for cot
 C----------------------------------------------------------------------
-  100 IF (X .LT. ZERO) THEN
+      IF (X .LT. ZERO) THEN
             SGN = PIOV4
          ELSE
             SGN = -PIOV4

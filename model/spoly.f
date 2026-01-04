@@ -3,8 +3,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C  This function is sign function
 c  returns the sign of the specified number
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc     
-        integer function sgn(x)
-        double precision x
+      integer function sgn(x)
+      implicit none
+      double precision x
           if (x .gt. 0.0d0) then 
               sgn=1
             elseif (x .lt. 0.0d0) then
@@ -28,9 +29,13 @@ c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         subroutine between(xsrc1,xsrc2,xtar, isbetween,iecode)
 
-        implicit real*8 (a-h, o-z)
+c        implicit real*8 (a-h, o-z)
+        implicit none
         real*8 xsrc1,xsrc2, xtar
-
+        integer isbetween, iecode
+        real*8 dif,dif1,dif2
+        real(8),external:: dirdif
+        
         isbetween = -1
         iecode=0
 
@@ -67,8 +72,10 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine crossprod(x1,y1,z1,x2,y2,z2, x3,y3,z3)
 
-      implicit real*8 (a-h, o-z)
-
+c      implicit real*8 (a-h, o-z)
+      implicit none
+      real(8):: x1, y1, z1, x2, y2, z2,x3,y3,z3
+      
       x3 = y1 * z2 - y2 * z1
       y3=  z1 * x2 - z2 * x1
       z3 = x1 * y2 - x2 * y1
@@ -84,8 +91,11 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       function isovlap(x1,y1,z1,x2,y2,z2)
       
-      implicit real*8 (a-h, o-z)
-
+c      implicit real*8 (a-h, o-z)
+      implicit none
+      real(8):: x1, y1, z1, x2, y2, z2
+      integer:: isovlap
+      
       isovlap = 0
 
       if(abs(x2-x1)+abs(y2-y1)+abs(z2-z1).lt.1d-10) isovlap=1
@@ -102,8 +112,14 @@ C  isinarcseg: 1 on the line
 C              0 no 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       function isinarcseg(x1,y1,z1,x2,y2,z2,xx,yy,zz)
-      implicit real*8 (a-h, o-z)
 
+c     implicit real*8 (a-h, o-z)
+      implicit none
+      real(8):: x1, y1, z1, x2, y2, z2,xx,yy,zz
+      integer::isinarcseg
+      real(8):: xp,yp,zp, a1, a2, ap, cosa1p,cosa2p,cosa12
+      real(8):: an1p,an2p, an12
+      
       include 'param.inc'
 
       isinarcseg = 0
@@ -162,8 +178,10 @@ c  Output: x, y, z
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc   
         subroutine spc2dc(xlon,xlat, x,y,z)
 
-        implicit real*8 (a-h, o-z)
- 
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        real(8)::xlon,xlat,x,y,z
+        
         x = cos(xlon) * cos(xlat)
         y = sin(xlon) * cos(xlat)
         z = sin(xlat)
@@ -237,7 +255,20 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      &     xlon1, xlat1, xlon2, xlat2, iflag1,
      &       iflag2, iflag3)
 
-        implicit real*8 (a-h, o-z)
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        integer::iflag1,iflag2,iflag3
+        real(8):: plon1,plat1,plon2,plat2,xlon1,xlat1
+        real(8):: xlon2,xlat2
+
+        integer::ivp1p2,ivx1x2,ivp1x1,ivp1x2,ivp2x1,ivp2x2 
+        integer::insx1,insx2,insp1,insp2
+        integer::is1,is2,is3,is4
+        integer,external:: isovlap,  isinarcseg
+
+        real(8)::ppx,ppy,ppz,px1,py1,pz1,px2,py2,pz2
+        real(8)::vx,vy,vz,x1,y1,z1,x2,y2,z2
+        real(8)::xxx,xxy,xxz
         
         iflag1 = -1
         iflag2 = 0
@@ -357,12 +388,19 @@ c   Output: iflag: -1, outside; 1 inside
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc     
        subroutine srecse(px1, px2, py1, py2, xx, yy, m, iflag)
 
-       implicit real *8 (a-h, o-z)
-      
+c       implicit real *8 (a-h, o-z)
+       implicit none
+       real(8)::px1,px2,py1, py2
+       integer::m
+
+
+       real(8),external::dirdif
+        
        real*8 xx(1:m),yy(1:m),aa12(1:m),aa111(1:m),aa112(1:m),aa113(1:m)
        integer sgn
-       integer iflag(1:m),iflag11(1:m),iflag12(1:m), m
-
+       integer iflag(1:m),iflag11(1:m),iflag12(1:m)
+       integer:: i
+       
        do i=1, m
        write(18,*) px1, px2, py1, py2, xx(i), yy(i)   
           iflag(i)=-1
@@ -408,8 +446,11 @@ c   output: flag
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc     
        subroutine spolyse(px, py, n, xx, yy, m, flag)
 
-       implicit real *8 (a-h, o-z)
-      
+c       implicit real *8 (a-h, o-z)
+
+       implicit none
+
+       
        real*8 px(1:n+1), py(1:n+1)
        real*8 xx(1:m), yy(1:m), plon(1), plat(1)
 
@@ -442,14 +483,20 @@ c      flag: -1, outside; 0, on the boundary; 1 inside
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc     
        subroutine splnpse(px, py, n, xx, yy, m, npinfo, flag)
 
-       implicit real *8 (a-h, o-z)
-      
+c       implicit real *8 (a-h, o-z)
+       implicit none
+       include 'param.inc'
+       
        real*8 px(1:n+1), py(1:n+1), x, y, esp
        real*8 xx(1:m), yy(1:m)
 
-       integer flag(1:m), npInfo, te, n, ip, sgn, is, m
-       include 'param.inc'
+       integer flag(1:m), npInfo, te, n, ip,  is, m
 
+       real(8)::d1,d2
+       real(8),external::dirdif
+       integer:: i, k, iecode, iflag2,iflag3, itag
+       integer,external::sgn
+       
        esp=1.0d-12
 
        px(n+1)=px(1)
@@ -464,7 +511,7 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
         te = -1
 
        
- 10     do i = 1, n
+        do i = 1, n
 
            call between(px(i), px(i+1), x, is, iecode)
 
@@ -516,13 +563,13 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
               endif
            endif
             
- 19     enddo
+        enddo
 
- 60     if( ip - ip /2 * 2.eq.1) then
+        if( ip - ip /2 * 2.eq.1) then
            te=1
           else
            te = -1
- 69     endif
+        endif
 
  910    continue
         flag(k)=te
@@ -543,9 +590,13 @@ C            havad: haversine of the distance.
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         real*8 function havad(lon1, lat1, lon2, lat2)
 
-        implicit real*8 (a-h, o-z)
+c        implicit real*8 (a-h, o-z)
+        implicit none
         real*8 lon1, lon2, lat1, lat2
 
+        real(8)::temp
+        real(8),external::hav
+        
         temp = cos(lat1)*cos(lat2)*hav(lon2-lon1)
         temp = temp + hav(lat2-lat1)
         havad=temp
@@ -562,7 +613,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
        real*8 function hav(rad)
 
-       implicit real*8 (a-h,o-z)
+c       implicit real*8 (a-h,o-z)
+        implicit none
+        real(8)::  rad
       
        hav= sin(rad/2d0)**2
        return      
@@ -579,8 +632,10 @@ C            ahav
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
        real*8 function ahav(val)
-       implicit real*8(a-h,o-z)
-
+c       implicit real*8(a-h,o-z)
+       implicit none
+       real(8)::val, temp
+       
        if(val.lt.-1d-12.or.val.gt.1d0+1d-12)then
           write(*,*)'ahav() out of range', val
           stop
@@ -605,9 +660,13 @@ C            arcdist: distance in rad.
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         real*8 function arcdist(lon1, lat1, lon2, lat2)
 
-        implicit real*8 (a-h, o-z)
+c        implicit real*8 (a-h, o-z)
+        implicit none
+        
         real*8 lon1, lon2, lat1, lat2
-
+        real(8),external::havad
+        real(8)::temp
+        
         temp = sqrt(havad(lon1, lat1, lon2, lat2))
         arcdist = 2.0*asin(temp)
 
@@ -630,9 +689,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
        subroutine beardirt(xlon0, xlat0, xlon1, xlat1, bx, by, bangle)
 
-       implicit real*8 (a-h, o-z)
+c     implicit real*8 (a-h, o-z)
+       implicit none
        include 'param.inc'
 
+       real(8)::xlon0,xlat0,xlon1,xlat1,bx,by,bangle
+       real(8)::dlon
+       
        dlon=xlon1-xlon0
 
        by = sin(dlon)*cos(xlat1)
@@ -654,12 +717,20 @@ c
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc     
        subroutine spa(xlon, xlat, np, area)
 
-       implicit real*8 (a-h, o-z)
+c       implicit real*8 (a-h, o-z)
+       implicit none
        include 'param.inc'
 
+       integer::np
        real*8 xlon(1:np), xlat(1:np)
+       real(8)::area
+
+       
        real*8 xlon1(10002), xlat1(10002)
- 
+       real(8)::eps,bx,by, bangle1, bangle2,temp
+       integer::i,k, nt
+       real(8),external::dirdif
+       
        eps=1d-20
   
        k = 1
@@ -718,10 +789,19 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
        subroutine findInP(xlon, xlat, np, plon, plat)
 
-       implicit real*8 (a-h, o-z)
+c       implicit real*8 (a-h, o-z)
+       implicit none
+
+       integer::np
        real*8 xlon(1:np), xlat(1:np)
        real*8 xlon1(10002), xlat1(10002)
 
+       real(8)::plon,plat,bangle1,bangle2,bx,by,eps,temp
+       real(8):: tmlat,tmlon,xbangle
+       integer::i, iff1, iff2,iff3, itocheck
+       integer::k,nt
+       real(8),external::dirdif,dirpa
+       
        eps=1e-20
   
        k = 1
@@ -790,8 +870,13 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
        subroutine fifpa(plon1, plat1,plon2, plat2,frac, xlon, xlat)
 
-       implicit real*8 (a-h, o-z)
+c       implicit real*8 (a-h, o-z)
+       implicit none
+       real(8)::plon1,plat1,plon2,plat2,frac,xlon,xlat
 
+       real(8):: a, ad, b, x, y, z
+       real(8),external:: arcdist
+       
        ad=arcdist(plon1, plat1, plon2, plat2)
        
        a = sin((1d0-frac)*ad)/sin(ad)
@@ -822,9 +907,13 @@ c      plon, plat: coordination of target location in degree
 ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
        subroutine pwdistbear(xlon, xlat, bangle, arcdis, plon, plat)
-       implicit real*8 (a-h,o-z)
-       include 'param.inc'
 
+c     implicit real*8 (a-h,o-z)
+       implicit none
+       
+       include 'param.inc'
+       real(8)::xlon,xlat, bangle,arcdis,plon,plat
+       
        plat = asin(sin(xlat)*cos(arcdis)+cos(xlat)
      &             *sin(arcdis)*cos(bangle))
        plon = xlon+atan2(sin(bangle)*sin(arcdis)*cos(xlat),
@@ -844,9 +933,12 @@ C    Output: xc2, yc2
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       
       subroutine antipl(xc1, yc1, xc2, yc2)
-      implicit real*8 (a-h,o-z)
-      include 'param.inc'
 
+c      implicit real*8 (a-h,o-z)
+      implicit none
+      include 'param.inc'
+      real(8)::xc1,yc1,xc2,yc2
+      
       yc2=-yc1
       
       if (xc1.ge.0d0) then
@@ -866,8 +958,14 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       real*8 function deg2rad(deg)
-      implicit real*8(a-h,o-z)
+
+      implicit none
+c      implicit real*8(a-h,o-z)
       include 'param.inc'
+
+      real(8)::deg
+
+      real(8)::dtr
       
       dtr=pi/180d0
  
@@ -892,9 +990,16 @@ c              direction
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       
       real*8 function dirdif(a1, a2, ishort)
-      implicit real*8 (a-h,o-z)
-      include 'param.inc'
 
+c     implicit real*8 (a-h,o-z)
+      implicit none
+      real(8)::a1,a2
+      integer::ishort
+      
+      include 'param.inc'
+      real(8)::a
+
+      
       a=a2-a1
 
       if(ishort.eq.0) then
@@ -933,8 +1038,14 @@ c              2*Pi if itype=0 and -Pi to Pi if itype=1.
 cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
       
       real*8 function dirpa(a1, da, itype)
-      implicit real*8 (a-h,o-z)
+      
+c     implicit real*8 (a-h,o-z)
+      implicit none
+      real(8)::a1,da
+      integer::itype
+      
       include 'param.inc'
+      real(8)::a
      
       a = mod (a1 + da,2*pi)
 
@@ -962,8 +1073,12 @@ ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
        real*8 function bisect(r1,r2,r12)
 
-       implicit real*8 (a-h, o-z)
+c       implicit real*8 (a-h, o-z)
 
+       implicit none
+       real(8)::r1,r2,r12
+
+       real(8)::temp1, aa, temp2, bb, aa2
        temp1=(cos(r12)-cos(r2)*cos(r1))/sin(r2)/sin(r1)
        if(temp1.gt.1d0)temp1=1d0-1d-10
        if(temp1.lt.-1d0)temp1=-1d00+1d-10

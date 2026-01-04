@@ -3,16 +3,26 @@ C   The subroutine outback outputs the background rate on a lattice of
 C      mx*my grids
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine outrates(file1)
-      implicit real*8 (a-h,o-z)
+c      implicit real*8 (a-h,o-z)
+      implicit none
       character*80 file1
+
       include 'mpif.h'
       include 'common.inc'
+      include 'param.inc'
       real*8 rtx1, rtx2, rty1, rty2, rtz1, rtz2
       common /range/ rtx1, rtx2, rty1, rty2, rtz1, rtz2
-      include 'param.inc'
 
       real*8 w(10)
 
+      real(8),external::havad,dbeta,dfisher
+      real(8)::xmu, a2, c, alfa, p, d, q, gamma, eta
+      real(8):: bbb1,bbb2,btemp, delt, havd2,havr0
+      real(8):: pr1, pr2, pr3,pr4, s, s1, ssig, tmp,tmp1,tmp2
+      real(8)::tx1, tx2, ty1, ty2, x0,y0, xlamb, z0
+      
+      integer::i, j, kk,ii
+      
           xmu=x(1)**2
           a2=x(2)**2
           c=x(3)**2
@@ -91,12 +101,17 @@ C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
         subroutine outprob(file1)
-        implicit real*8 (a-h,o-z)
+c     implicit real*8 (a-h,o-z)
+        
+        implicit none
+        
         character*80 file1
+
+        integer::i
 c        include 'mpif.h'
         include 'common.inc'
 
-        if(myrank.eq.2)then
+        if(myrank.eq.min(2,nprocs-1))then
              open(35,file=file1)
              do i=1,nn
                 write(35,992)i,zprob(i),zbandw(i),zbkgd(i)
@@ -105,6 +120,6 @@ c        include 'mpif.h'
         endif
        return 
 
- 990  format(6(1x,i5,f7.4))
+c 990  format(6(1x,i5,f7.4))
  992  format(1x,i8,3f20.10)
       end

@@ -1,18 +1,20 @@
 C      file: etas3ds.f
 C      associated files: setas8fun.f davidn.f sfrint.f 
 C                        spoly.f setas8out.f
-
-      programme eats3ds
+      program etas3ds
 c-----------------------------------------------
 c     3D space-time version of the SETAS model
 c     with parallel computing
 c     Spherical version
 c------------------------------------------------
 
-      implicit real*8 (a-h, o-z)
+c      implicit real*8 (a-h, o-z)
+      implicit none
+      
       include 'mpif.h'
       include 'common.inc'
       character *80 fn
+      integer::i, ioptimise,iterative,ierr
       common /optim/ ioptimise
 
 
@@ -56,14 +58,17 @@ c
 c********************************************************************
       subroutine para(nk)
 
-      implicit real*8 (a-h,o-z)
+c      implicit real*8 (a-h,o-z)
+      implicit none
+      integer::nk
       include 'common.inc'
 
       if(myrank == 0) ista = 1
-      if(myrank /= 0) ista = sqrt(float(nk)*float(nk)*
-     &          float(myrank)/float(nprocs))+1 
-      if(myrank /= nprocs-1) iend = sqrt(float(nk)*float(nk)*
-     &    float(myrank+1)/float(nprocs))
+      if(myrank /= 0) ista = int(sqrt(real(nk,kind=8)*real(nk,kind=8)*
+     &          real(myrank,kind=8)/real(nprocs,kind=8)))+1 
+      if(myrank /= nprocs-1) iend = int(sqrt(real(nk,kind=8)*
+     &    real(nk,kind=8)*
+     &    real(myrank+1,kind=8)/real(nprocs,kind=8)))
 
       if(myrank == nprocs-1) iend = nk
 
@@ -77,7 +82,10 @@ c Read data and parameters
 c********************************************************************
 
       subroutine readata() 
-      implicit real*8 (a-h, o-z)
+c     implicit real*8 (a-h, o-z)
+      implicit none
+      
+      
       include 'mpif.h'
       include 'common.inc'
       include 'param.inc'
@@ -86,7 +94,11 @@ c********************************************************************
       common /range/ rtx1, rtx2, rty1, rty2, rtz1, rtz2
       character *80 hypodata, fmt
       character *160 ftl
+      integer::i,j, ierr,ioptimise, itemp
+      real(8)::xmg0,zmin
+      real(8),external::deg2rad
 
+      
       if(myrank.eq.0) then
 
          write(*,*)'Please input the name of the data file:'
@@ -332,10 +344,10 @@ C------------------------------------------------------
          x(i)=sqrt(b(i))
       enddo
 
- 991  format(1x,i6,4f12.4,4f5.2)
- 993  format(1x,'mx, my= ',i7,i7)
- 995  format('tx,ty,tz,xmin,ymin,xmg0,zmin,tsta',/8f10.3,
-     &/' nn =',i6,' nnc=',i6)
+c 991  format(1x,i6,4f12.4,4f5.2)
+c 993  format(1x,'mx, my= ',i7,i7)
+c 995  format('tx,ty,tz,xmin,ymin,xmg0,zmin,tsta',/8f10.3,
+c     &/' nn =',i6,' nnc=',i6)
  997  format(1x, 'Data set  ',10a8)
  1020 format(1x,3x,'input data'/1h ,5x,'n=',i3,3x,'itr=',i5,3x,
      2          'ier=',i3,3x,'eps=',1pe16.7)
@@ -348,14 +360,17 @@ c********************************************************************
 
        subroutine dav()
 
-       implicit real * 8 (a-h,o-z)
+c       implicit real * 8 (a-h,o-z)
+       implicit none
+       
        include 'common.inc'
        external func15
+       integer::i
  
        do i=1,n
          x(i)=sqrt(b(i))
        enddo
-       call davidn(x,n,0,func15)
+       call davidn(x,n,func15)
      
        do 80 i=1,n
          b(i)=x(i)**2
@@ -368,11 +383,11 @@ c********************************************************************
       endif
       return
 
- 991  format(1x,f16.8)
- 999  format(1x, 8f12.8)
- 1020 format(1x,3x,'input data'/1h ,5x,'n=',i3,3x,'itr=',i5,3x,
-     2          'ier=',i3,3x,'eps=',1pe16.7)
- 1030 format(1x,'x=',5e14.5)
+c 991  format(1x,f16.8)
+c 999  format(1x, 8f12.8)
+c 1020 format(1x,3x,'input data'/1h ,5x,'n=',i3,3x,'itr=',i5,3x,
+c     2          'ier=',i3,3x,'eps=',1pe16.7)
+c 1030 format(1x,'x=',5e14.5)
  1040 format(1x, /' mle = ',5e12.5/('       ',9e12.5))
  1110 format(1h , 8f20.9)
       end
@@ -387,13 +402,25 @@ c     the space-time <<anisotropic>> version.
 c \lambda(t,x,y)=\mu+\sum k/(t-t_j+c)^p
 c *\exp{ ( (x-x_j)^2+(y-y_j)^2 )/2/\exp{2\alpham_j} }
 c-----------------------------------------------------------------------
-      implicit real * 8 (a-h,o-z)
+c      implicit real * 8 (a-h,o-z)
 
+      implicit none
+
+      integer::n,ifg
+      real(8)::b(9),h(9), f
+      
       include 'mpif.h'
       include 'common1.inc'
 
-      dimension b(9),h(9),gtemp(50)
-      real*8 gg(20),gg0(20)
+      real*8 gg(20),gg0(20),gtemp(50)
+
+      real(8)::ff,df1,df2,df3,df4,df5,df6,df7,df8,df9
+      real(8)::ftemp,df1temp,df2temp,df3temp,df4temp,df5temp
+      real(8)::df6temp,df7temp,df8temp,df9temp
+      real(8)::temp,fv0,fv0temp,fvtemp,h1,h2,h3,h4,h5,h6,h7,h8,h9
+      
+      integer:: i,ierr,j
+c      dimension b(9),h(9),gtemp(50)
 
 c------------------Parallel part-----------------------------------      
       
@@ -559,21 +586,21 @@ c      write(*,*)'in task', myrank, 'ff1=',ff1
         h(8)=-df8+h8
         h(9)=-df9+h9
 
-C        if(myrank.eq.0)write(*,991)f,ff,fv0, (h(i),i=1,9)
+        if(myrank.eq.0)write(*,991)f,ff,fv0, (h(i),i=1,9)
 C        if(myrank.eq.0) then
 C       print *, 'f=', f
 C        print *, 'ff=', ff
 C        print *, 'fv0=', fv0
 C        print *, 'Gradient=', (h(i),i=1,9)
 C        endif
-C        write(*,992)(b(i),i=1,9)
-C        if(myrank.eq.0)write(*,992)(b(i),i=1,9)
+c        write(*,992)(b(i),i=1,9)
+        if(myrank.eq.0)write(*,992)(b(i),i=1,9)
 
       return
  991  format(1x,'function value=', 3f12.4, / ' Gradient= ',/9f12.4)
  992  format(1x,'at b=',/9f9.4/)
- 993  format(1x,9f12.4)
- 994  format(1x,i8,f19.7)
+c 993  format(1x,9f12.4)
+c 994  format(1x,i8,f19.7)
       end
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -586,11 +613,20 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       subroutine bandwcalc(np, xlband)
 
-      implicit real*8 (a-h, o-z)
+c     implicit real*8 (a-h, o-z)
+      implicit none
+
+      integer::np
+      real(8):: xlband
+      
       include 'mpif.h'
       include 'common.inc'
 
       real*8 dbuffer(100), zbdtemp(nnd)
+      integer::i, ierr,j, k, kk, kkk
+      integer,external::iasign
+      real(8):: temp
+      real(8),external::arcdist
 
       do i=1, nn
         zbdtemp(i) =0.0d0
@@ -645,11 +681,16 @@ C
 C-----------------------------------------------------------------------
 
       subroutine probcalc()
-      implicit real*8 (a-h, o-z)
+c      implicit real*8 (a-h, o-z)
+      implicit none
+      
       include 'mpif.h'
       include 'common.inc'
 
       real*8 gtemp(50), zpbtemp(nnd)
+      real(8)::bk,b2
+      integer::i, ierr
+      integer,external::iasign
 
       do i=1, nn
           zpbtemp(i)=0.0d0
@@ -674,7 +715,7 @@ C           print *, zprob(1)
 C      endif
 c     write(*,*)'finishing background calculation'
      
- 990  format(8(1x,i5,f7.4))
+c 990  format(8(1x,i5,f7.4))
       end
 
 C-----------------------------------------------------------------------
@@ -685,14 +726,22 @@ C  output as (i, j, \rho_ij)
 C-----------------------------------------------------------------------
 
       subroutine outpmat(fp)
-      implicit real*8 (a-h, o-z)
+c      implicit real*8 (a-h, o-z)
 c      include 'mpif.h'
-      include 'common.inc'
-      parameter (pi=3.1415926535897932384626433832795028841971693993751)
-
+      implicit none
       character*80 fp
+      
+      include 'param.inc'
+      include 'common.inc'
+c      parameter (pi=3.1415926535897932384626433832795028841971693993751)
 
-      real*8 gtemp(10)
+
+      real(8):: gtemp(10),xmu,a2,c,alfa,p,d,q,eta,gamma
+      integer::i,j
+      real(8)::bk,delt, pr1,pr2,pr3,ssig,b2,bbb1,bbb2,havd
+      real(8)::pr4,s,temprob,tmp,tmp1,tmp2
+      real(8),external::havad,dbeta
+
 
       if(myrank.eq.1) then
           open(39, file=fp)
@@ -728,8 +777,8 @@ c      include 'mpif.h'
                tmp2 = 1d0-tmp1
 
                tmp = zdp(i)/depmax
-               if(zdp(i).eq.0) tmp = 0.5/depmax
-               if(zdp(i).ge.depmax-1e-8) tmp=1d0-0.5d0/depmax
+               if(abs(zdp(i))< 1d-12) tmp = 0.5/depmax
+               if(zdp(i).ge.depmax-1d-8) tmp=1d0-0.5d0/depmax
                pr4 = dbeta(tmp, eta*tmp1 + 1d0, eta*tmp2 +1d0)/depmax
 
                s=a2*pr1*pr2*pr3*pr4
@@ -749,8 +798,12 @@ c      include 'mpif.h'
       end
 
 c-------------------------------------------------------
-      function iasign(im, np, mr)
-      implicit real*8 (a-h, o-z)
+      integer function iasign(im, np, mr)
+c      implicit real*8 (a-h, o-z)
+      implicit none
+      integer::im,np,mr
+
+      integer::ia, k
       
       ia = 0 
       k = mod(im-1, 2*np) 
