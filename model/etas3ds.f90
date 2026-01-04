@@ -9,30 +9,73 @@
 !c------------------------------------------------
 
 !c      implicit real*8 (a-h, o-z)
-      use mpi
+      use mpi_f08
 !      use mod_kinds, only:dp 
       use mod_mainfuns,only: bkgdcalc,probcalc,bandwcalc,outrates, &
-           outprob,outpmat
+           outprob,outpmat,cal_hav_deltad,cal_xis
       use mod_med_result,only:zprob
       use mod_smoothing
       use mod_mpi_state
       use mod_eq_data
+      use mod_node_data
       implicit none
       
 !c      include 'mpif.h'
 !      include 'common.inc'
       character *80 fn
       integer::i, ioptimise,iterative,ierr
+      integer::color,key
+      
       common /optim/ ioptimise
 
 
       call mpi_init(ierr)
       call mpi_comm_size(mpi_comm_world, nprocs, ierr)
       call mpi_comm_rank(mpi_comm_world, myrank, ierr)
+      
 
-      call readata()
-      call para(nn)
-      call bandwcalc(npp, bwm)
+!  find nodes in the mpi
+      
+      call mpi_comm_split_type(mpi_comm_world,mpi_comm_type_shared, 0, &
+           mpi_info_null, comm_shm, ierr)
+      call mpi_comm_rank(comm_shm, shmrank, ierr)
+      call mpi_comm_size(comm_shm, shmnprocs,ierr)
+
+      ! define node-head communicator
+      if(shmrank==0) then
+         color=0
+         key= myrank
+      else
+         color=mpi_undefined
+         key=0
+      endif
+      
+     call mpi_comm_split(mpi_comm_world, color, key, comm_nodehead,ierr)
+     if(shmrank==0) then
+        call mpi_comm_size(comm_nodehead, hnnprocs, ierr)
+        call mpi_comm_rank(comm_nodehead, hnrank, ierr)
+     else
+        hnrank=-1
+        hnnprocs=0
+     endif
+     
+     
+     
+     write(*,*) myrank, shmrank, hnrank, hnnprocs
+
+     call mpi_barrier(mpi_comm_world, ierr)
+      
+     call readata()
+ 
+      
+     ! allocate memory for hav_deltad, xis
+     call allocate_node_data()
+     
+     call cal_hav_deltad()
+     call cal_xis()
+     
+     call para(nn)
+     call bandwcalc(npp, bwm)
 
       do i = 1, nn
           zprob(i) = 1
@@ -55,6 +98,8 @@
       fn="pmatr.dat"
       call outpmat(fn)
 
+      call free_node_data()
+      
       call mpi_finalize(ierr)
 
       end
@@ -94,12 +139,13 @@
 !c     implicit real*8 (a-h, o-z)
 
       use mod_kinds, only: dp 
-      use mpi
+      use mpi_f08
       use mod_geomsphere, only: antipl,srecse,spolyse,deg2rad
       use mod_params, only: pi
 
       use mod_model
       use mod_eq_data
+      use mod_node_data
       use mod_domain
       use mod_smoothing
       use mod_med_result
@@ -374,8 +420,8 @@
       call mpi_bcast(indat,nn,mpi_integer,0,  &
          mpi_comm_world,ierr)
       call mpi_bcast(zprob,nn,mpi_double_precision,0, &
-         mpi_comm_world,ierr)
-
+           mpi_comm_world,ierr)
+      
       call mpi_bcast(mx,1,mpi_integer,0,  &
          mpi_comm_world,ierr)
       call mpi_bcast(my,1,mpi_integer,0,  &

@@ -258,10 +258,11 @@
       procedure(funct_if) :: funct   ! if allowed
       
       real(dp)::  x(n) , dx(50) , g(50) , g0(50) , y(50)
-      real(dp)::  h(50,50) , wrk(50) , s(50)
+      real(dp)::  h(50,50)
+      real(dp):: wrk(50) , s(50)
       real(dp)::  r(31,31)
       integer:: n
-      
+     
 !c      dimension  x(50) , dx(50) , g(50) , g0(50) , y(50)
 !c      dimension  h(50,50) , wrk(50) , s(50)
 !c      dimension  r(31,31)
@@ -284,14 +285,16 @@
 !c
 !c          initial estimate of inverse of hessian
 !c
+      
       do    i=1,n
          do j=1,n
-           h(i,j) = 0.0d00
+               h(i,j) = 0.0d00
          enddo   
+         h(i,i) = 1.0d00
+        
          s(i) = 0.0d00
          dx(i) = 0.0d00
-         h(i,i) = 1.0d00
-      enddo
+       enddo
 !c      isw = 0
 !c
       call  funct( n,x,xm,g,ig )
@@ -320,7 +323,7 @@
          wrk(i) = sum
       enddo
       s1 = 0.0d00
-      s2 = 0.0d00
+      s2 = 0.0d00 
       do    i=1,n
          s1 = s1 + wrk(i) * y(i)
          s2 = s2 + dx(i) * y(i)

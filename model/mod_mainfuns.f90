@@ -1,11 +1,11 @@
        module mod_mainfuns
        use mod_kinds, only:dp 
-       use mpi
+       use mpi_f08
 
        implicit none
        private
        public::func15,probcalc,bandwcalc,outpmat,bkgdcalc,&
-            outprob,outrates
+            outprob,outrates,cal_hav_deltad, cal_xis
 
        contains
   
@@ -20,7 +20,7 @@
 !c-----------------------------------------------------------------------
 !c      implicit real * 8 (a-h,o-z)
       use mod_kinds, only:dp 
-      use mpi
+      use mpi_f08
       use mod_basicfuns,only:xlamb,xint
       use mod_eq_data
 
@@ -290,7 +290,7 @@
       subroutine bandwcalc(np, xlband)
 
 !c     implicit real*8 (a-h, o-z)
-      use mpi
+      use mpi_f08
       use mod_kinds, only:dp
       use mod_basicfuns, only:iasign
       use mod_geomsphere,only:arcdist
@@ -366,7 +366,7 @@
 
       subroutine probcalc()
 !c      implicit real*8 (a-h, o-z)
-      use mpi
+      use mpi_f08
       use mod_kinds, only:dp
       use mod_basicfuns, only:xlamb,iasign
       use mod_mpi_state
@@ -425,7 +425,7 @@
 !c      include 'mpif.h'
 
         use mod_kinds, only:dp
-        use mpi
+        use mpi_f08
         use mod_basicfuns,only:xlamb,iasign
         use mod_geomsphere,only:havad
         use mod_specialfun,only:dbeta
@@ -522,7 +522,7 @@
 
       subroutine bkgdcalc()
 !c     implicit real*8 (a-h,o-z)
-      use mpi
+      use mpi_f08
       use mod_kinds, only:dp 
       use mod_basicfuns,only:pfisher,pgauss,pcauchy,sfr,dfisher,iasign
       use mod_geomsphere,only:havad
@@ -653,7 +653,7 @@
       subroutine outrates(file1)
 !c      implicit real*8 (a-h,o-z)
 
-      use mpi
+      use mpi_f08
       use mod_kinds, only:dp
       use mod_basicfuns,only:dfisher
       use mod_geomsphere,only:havad
@@ -757,5 +757,219 @@
       
       end subroutine outrates
     
+
+     subroutine cal_hav_deltad()
+        use mpi_f08
+        use mod_kinds,only:dp,i8
+        use mod_mpi_state
+        use mod_eq_data
+        use mod_node_data
+        use mod_params,only:pi
+        use mod_geomsphere,only:havad
+        implicit none
+
+        integer(i8) :: npairs, k0, k1, k
+        integer::i0, j0, i1, j1, i, j, ierr, cnt
+        
+        npairs  = int(nn,8)*int(nn-1,8)/2_8
+        k0 = (int(myrank,8)*npairs)/int(nprocs,8) + 1_8
+        k1 = (int(myrank+1,8)*npairs)/int(nprocs,8)
+
+        if (k1 >= k0) then
+           call inv_idx_lt(k0, i0, j0)
+           call inv_idx_lt(k1,  i1, j1)
+        else
+            ! no work
+        end if
+
+        i = i0;  j = j0
+
+        ! walking through all grids
+        do k = k0, k1
+
+           hav_deltad(k)=havad(xx(i),yy(i), xx(j),yy(j))
+!           write (*,*) i, j, k, idx_lt(i,j)
+           ! advance to next (i,j) in packed order
+           if (j < i-1 ) then
+              j = j + 1
+           else
+              i = i + 1
+              j = 1 
+           end if
+        end do
+        
+        call MPI_win_sync(win_pair1, ierr)
+        call mpi_barrier(comm_shm, ierr)
+
+        if(npairs > huge(cnt)) stop "npairs exceeds 32-bit MPI count limit)"
+        cnt= int(npairs)
+        
+        if(comm_nodehead /= mpi_comm_null)then
+            call mpi_allreduce(mpi_in_place, hav_deltad, cnt, mpi_double_precision, &
+             mpi_sum, comm_nodehead, ierr)
+         endif
+         
+        call MPI_win_sync(win_pair1, ierr)
+        call mpi_barrier(comm_shm, ierr)
+        
+     end subroutine  cal_hav_deltad
+
+     subroutine cal_xis()
+        use mpi_f08
+        use mod_kinds,only:dp,i8
+        use mod_mpi_state
+        use mod_eq_data
+        use mod_node_data
+        use mod_params,only:pi
+        use mod_geomsphere,only:havad
+        implicit none
+
+        integer(i8) :: npairs, k0, k1, k
+        integer::i0, j0, i1, j1, i, j, ierr, cnt
+        
+        npairs  = int(nn,8)*int(nn-1,8)/2_8
+        k0 = (int(myrank,8)*npairs)/int(nprocs,8) + 1_8
+        k1 = (int(myrank+1,8)*npairs)/int(nprocs,8)
+
+        if (k1 >= k0) then
+           call inv_idx_lt(k0,  i0, j0)
+           call inv_idx_lt(k1,  i1, j1)
+        else
+            ! no work
+        end if
+
+        i = i0;  j = j0
+
+        ! walking through all grids
+!!        !$omp target teams distribute parallel do map(tofrom:xis) 
+        do k = k0, k1
+
+!          call inv_idx_lt(k, i,j)
+          call xi(i,j, xis(k))
+           ! advance to next (i,j) in packed order
+           if (j < i-1) then
+              j = j + 1
+           else
+              i = i + 1
+              j = 1
+           end if
+        end do
+!!       $omp end target teams distribute parallel do 
+        
+        call MPI_win_sync(win_pair2, ierr)
+        call mpi_barrier(comm_shm, ierr)
+
+        if(npairs > huge(cnt)) stop "npairs exceeds 32-bit MPI count limit)"
+        cnt= int(npairs)
+        
+        if(comm_nodehead /= mpi_comm_null)call mpi_allreduce(mpi_in_place, xis, cnt, mpi_double_precision, &
+             mpi_sum, comm_nodehead, ierr)
+        
+        call MPI_win_sync(win_pair2, ierr)
+        call mpi_barrier(comm_shm, ierr)
+       
+     end subroutine  cal_xis
+
+
+     
+!C****************************************************************
+!C     Function to calculate xi(t_i-t_j,x_i-x_j,y_i-y_j) 
+!C      for each pair of events
+!c     Input:
+!c       i,j: sequence no of events
+!c   
+!c     Output:
+!c      
+!c     
+!c***************************************************************
+      subroutine xi(i,j, xival)
+        
+!c     implicit real*8 (a-h,o-z)
+        use mod_kinds, only:dp
+        use mod_geomsphere, only: havad
+        use mod_specialfun,only:psi,dbeta
+        use mod_params, only: pi
+ 
+        use mod_eq_data
+        use mod_med_result
+        use mod_mpi_state
+        use mod_domain
+        use mod_node_data
+        use mod_model
+         
+      implicit none
+      real(dp):: xival
+      integer::i
+      
+!c      parameter(PI=3.14159265358979323846264338327d0)
+!      include 'common1.inc'
+!      include 'param.inc'
+
+      real(dp)::xmu,a2,c,alfa,p,d,q,gamma,eta
+      real(dp)::s,sg1,sg2,sg3,sg4,sg5,sg6,sg7,sg8,sg9
+      real(dp)::delt,havd2,bbb1,bbb2,bbb3,bbb4
+      real(dp)::pr1,pr1_alfa,pr2,pr2_c,pr2_p,pr3,pr3_d,pr3_q
+      real(dp)::pr3_gamma,pr4,pr4_ln_eta,ssig,tmp,tmp1,tmp2
+!c      real(dp),external::psi,dbeta
+      integer::j
+      
+      xmu=b(1)**2
+      a2=b(2)**2
+      c=b(3)**2
+      alfa=b(4)**2
+      p=b(5)**2
+      d=b(6)**2
+      q=b(7)**2
+      gamma=b(8)**2
+      eta = b(9)**2
+
+      s=xmu*zbkgd(i)
+      sg1=zbkgd(i)
+      sg2=0d0
+      sg3=0d0
+      sg4=0d0
+      sg5=0d0
+      sg6=0d0
+      sg7=0d0
+      sg8=0d0
+      sg9=0d0
+
+      if(i==1)then
+         xival=s
+      else
+         delt=zz(i)-zz(j)
+         pr1=exp(alfa*zmg(j))
+         pr2=(p-1)/c*(1d0+delt/c)**(-p)
+         ssig=d*exp(gamma*zmg(j))
+
+!          havd2=havad(xx(i),yy(i),xx(j),yy(j)) 
+!          bbb1=ssig+havd2
+!          write(*,*) i,j, idx_ut(i,j), idx_ut(j,i), havd2, hav_deltad(idx_ut(j,i)), hav_deltad(idx_ut(i,j))
+
+!          if(abs( havd2-hav_deltad(idx_ut(j,i)))>1e-5) write(*,*) i, j,  havd2, hav_deltad(idx_ut(j,i)),&
+!               'not equal'
+          
+         bbb1=ssig+hav_deltad(idx_ut(j,i))
+         
+         bbb2=((ssig+1d0)**(1d0-q)-ssig**(1d0-q))
+
+         pr3=(1d0-q)/4d0/PI/bbb2*bbb1**(-q)
+         
+         tmp1 = zdp(j)/depmax
+         tmp2 = 1d0-tmp1
+          
+         tmp = zdp(i)/depmax
+         if(zdp(i).eq.0)tmp =0.5/depmax
+         if(zdp(i).ge.depmax-1e-8)tmp =1d0-0.5d0/depmax
+
+         pr4 = dbeta(tmp,eta*tmp1+1d0,eta*tmp2+1d0)/depmax
+       
+         s=s+a2*pr1*pr2*pr3*pr4
+         xival=s
+      endif
+      
+      return
+      
+      end subroutine xi
 
     end module mod_mainfuns

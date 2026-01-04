@@ -23,7 +23,7 @@ OBJS     := $(patsubst %.f90,$(OBJDIR)/%.o,$(filter %.f90,$(SRCS))) \
             $(patsubst %.F,$(OBJDIR)/%.o,$(filter %.F,$(SRCS)))
 
 
-MAINOBJ   := $(OBJDIR)/etas3ds.o
+MAINOBJ   := $(OBJDIR)/setas3ds.o
 MOD_OBJS  := $(filter-out $(MAINOBJ),$(OBJS))
 
 # ===== Fortran / MPI compiler =====
@@ -33,10 +33,10 @@ MODDIR  := mod
 
 # ===== Flags =====
 FFLAGS_COMMON := -O3 -march=native -ffast-math -funroll-loops \
-                 -J$(MODDIR) -I$(MODDIR) -cpp -MMD -MP
+                 -J$(MODDIR) -I$(MODDIR) -cpp -MMD -MP -fopenmp -foffload=nvptx-none -v
 
-LDFLAGS :=
-LDLIBS  :=
+LDFLAGS := 
+LDLIBS  := 
 
 # ===== Sources (modules first, main last) =====
 SRCS := \
@@ -54,14 +54,14 @@ SRCS := \
 OBJS := $(patsubst %.f90,$(OBJDIR)/%.o,$(SRCS))
 DEPS := $(OBJS:.o=.d)
 
-TARGET := etas3ds
+TARGET := setas3ds
 
 .PHONY: all clean
 all: $(TARGET)
 
 # ===== Link =====
 $(TARGET): $(OBJS)
-	$(FC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+	$(FC) $(LDFLAGS) -fopenmp $^ -o $@ $(LDLIBS)
 
 # ===== Ensure directories exist =====
 $(OBJDIR):

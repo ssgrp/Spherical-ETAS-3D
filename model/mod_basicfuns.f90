@@ -337,6 +337,7 @@
         use mod_med_result
         use mod_mpi_state
         use mod_domain
+        use mod_node_data
          
       implicit none
       real(dp):: b(9), g1(50),fv1
@@ -382,8 +383,15 @@
          pr2=(p-1)/c*(1d0+delt/c)**(-p)
          ssig=d*exp(gamma*zmg(j))
 
-         havd2=havad(xx(i),yy(i),xx(j),yy(j))
-         bbb1=ssig+havd2
+!          havd2=havad(xx(i),yy(i),xx(j),yy(j)) 
+!          bbb1=ssig+havd2
+!          write(*,*) i,j, idx_lt(i,j), idx_lt(j,i), havd2, hav_deltad(idx_lt(j,i)), hav_deltad(idx_lt(i,j))
+
+!          if(abs( havd2-hav_deltad(idx_ut(j,i)))>1e-5) write(*,*) i, j,  havd2, hav_deltad(idx_ut(j,i)),&
+!               'not equal'
+          
+         bbb1=ssig+hav_deltad(idx_lt(i,j))
+         
          bbb2=((ssig+1d0)**(1d0-q)-ssig**(1d0-q))
          bbb3=((ssig+1d0)**(-q)-ssig**(-q))
          bbb4=((ssig+1d0)**(1d0-q)*log(ssig+1d0)-ssig**(1-q))*log(ssig)
@@ -706,5 +714,8 @@
       return 
     end function iasign
 
-      end module mod_basicfuns
+
+
+    
+    end module mod_basicfuns
       
