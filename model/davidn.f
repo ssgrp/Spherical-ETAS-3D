@@ -22,8 +22,8 @@ c      implicit  real  *8 ( a-h,o-z )
       implicit none
       
        external funct
-       real *8  x(1), h(1), g(50), x1(50),ram,ee
        integer k,ig
+       real *8  x(k), h(k), g(k), x1(50),ram,ee
 
        integer  sub,ret
 c      dimension  x(1) , h(1) , x1(50)
@@ -235,7 +235,7 @@ c     implicit  real * 8  ( a-h , o-z )
       implicit none
       
       external funct 
-      real*8  x(50) , dx(50) , g(50) , g0(50) , y(50)
+      real*8  x(n) , dx(50) , g(50) , g0(50) , y(50)
       real*8  h(50,50) , wrk(50) , s(50)
       real*8  r(31,31)
       integer:: n
@@ -370,8 +370,9 @@ c
 c
 c          linear  search
 c
+c-------------------------------------------------------------------
       call  linear( x,s,ramda,ed,n,ig,funct )
-
+c--------------------------------------------------------------------
 c
       if(myrank.eq.0)write( 6,330 )     ramda , ed , s1 , s2
 c

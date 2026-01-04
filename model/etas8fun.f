@@ -7,9 +7,10 @@ c********************************************************************
 
       subroutine bkgdcalc()
 c     implicit real*8 (a-h,o-z)
+      use mpi
       implicit none
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
 
       real(8),external:: pfisher,pgauss,pcauchy,havad,dbeta

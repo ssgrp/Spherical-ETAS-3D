@@ -4,10 +4,12 @@ C      mx*my grids
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine outrates(file1)
 c      implicit real*8 (a-h,o-z)
+
+      use mpi
       implicit none
       character*80 file1
 
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
       include 'param.inc'
       real*8 rtx1, rtx2, rty1, rty2, rtz1, rtz2

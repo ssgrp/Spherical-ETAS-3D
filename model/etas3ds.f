@@ -9,9 +9,10 @@ c     Spherical version
 c------------------------------------------------
 
 c      implicit real*8 (a-h, o-z)
-      implicit none
+       use mpi
+       implicit none
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
       character *80 fn
       integer::i, ioptimise,iterative,ierr
@@ -41,11 +42,11 @@ c      implicit real*8 (a-h, o-z)
       enddo
 
       fn="rates.dat"
-      call outrates(fn)
+c      call outrates(fn)
       fn="probs.dat"
-      call outprob(fn)
+c      call outprob(fn)
       fn="pmatr.dat"
-      call outpmat(fn)
+c      call outpmat(fn)
 
       call mpi_finalize(ierr)
 
@@ -83,10 +84,12 @@ c********************************************************************
 
       subroutine readata() 
 c     implicit real*8 (a-h, o-z)
+
+      use mpi
       implicit none
       
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
       include 'param.inc'
       real*8 rtx1, rtx2, rty1, rty2, rtz1, rtz2
@@ -403,13 +406,13 @@ c \lambda(t,x,y)=\mu+\sum k/(t-t_j+c)^p
 c *\exp{ ( (x-x_j)^2+(y-y_j)^2 )/2/\exp{2\alpham_j} }
 c-----------------------------------------------------------------------
 c      implicit real * 8 (a-h,o-z)
-
+      use mpi
       implicit none
 
       integer::n,ifg
-      real(8)::b(9),h(9), f
+      real(8)::b(n),h(n), f
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common1.inc'
 
       real*8 gg(20),gg0(20),gtemp(50)
@@ -614,12 +617,13 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       subroutine bandwcalc(np, xlband)
 
 c     implicit real*8 (a-h, o-z)
+      use mpi
       implicit none
 
       integer::np
       real(8):: xlband
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
 
       real*8 dbuffer(100), zbdtemp(nnd)
@@ -682,9 +686,10 @@ C-----------------------------------------------------------------------
 
       subroutine probcalc()
 c      implicit real*8 (a-h, o-z)
+      use mpi
       implicit none
       
-      include 'mpif.h'
+c      include 'mpif.h'
       include 'common.inc'
 
       real*8 gtemp(50), zpbtemp(nnd)

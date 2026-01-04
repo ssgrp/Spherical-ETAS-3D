@@ -104,11 +104,13 @@ C  Latest modification: June 8, 1988
 C
 C----------------------------------------------------------------------
 c     implicit real*8 (a-h,o-z)
+
+      use mod_kinds,only: dp
       implicit none
       INTEGER I,N,NQ
 CS    REAL
 CD    DOUBLE PRECISION
-      real *8 
+      real(dp):: 
      1   AUG,CONV,DEN,FOUR,FOURTH,HALF,ONE,P1,P2,PIOV4,Q1,Q2,
      2   SGN,THREE,XLARGE,UPPER,W,X,XINF,XMAX1,XMIN1,XSMALL,X01,
      3   X01D,X02,XX,Z,ZERO
